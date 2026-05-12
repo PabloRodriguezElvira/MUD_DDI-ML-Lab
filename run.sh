@@ -1,6 +1,6 @@
 #! /bin/bash
 
-BASEDIR=../../..
+BASEDIR=./lab_resources/DDI/
 
 ./corenlp-server.sh -quiet true -port 9000 -timeout 15000  &
 sleep 1
