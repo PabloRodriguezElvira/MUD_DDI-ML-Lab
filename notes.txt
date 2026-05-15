@@ -1,9 +1,9 @@
 get the lambdas (to see most important features) -> model._model.tagger.info()
 
 EXPERIMENTS:
-baseline (base features) = 32% 
-all the features + NB classifier = 39%
-all the features + SVM base = 60.9%
+1. baseline (base features) = 32% 
+2. all the features + NB classifier = 39%
+3. all the features + SVM base = 60.9%
 
 - Ajustar C (parámetro de regularización): prueba C=0.01, C=1.0, C=10.0 y quédate con el mejor en devel.
 - Inspeccionar features con los coeficientes: LinearSVC tiene clf.coef_ que te dice el peso de cada feature por clase
