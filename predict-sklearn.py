@@ -8,7 +8,7 @@ from sklearn.feature_extraction import DictVectorizer
 def prepare_instances(xseq):
 	features = []
 	for interaction in xseq:
-		token_dict = {feat.split('=')[0]:feat.split('=')[1] for feat in interaction[1:]}
+		token_dict = {feat: 1 for feat in interaction}
 		features.append(token_dict)
 	return features
 

@@ -1,1 +1,14 @@
 get the lambdas (to see most important features) -> model._model.tagger.info()
+
+EXPERIMENTS:
+baseline (base features) = 32% 
+all the features + NB classifier = 39%
+all the features + SVM base = 60.9%
+
+- Ajustar C (parámetro de regularización): prueba C=0.01, C=1.0, C=10.0 y quédate con el mejor en devel.
+- Inspeccionar features con los coeficientes: LinearSVC tiene clf.coef_ que te dice el peso de cada feature por clase
+  puedes ver cuáles están ayudando y cuáles añaden ruido.
+- Limitar el contexto before/after: ahora mismo se usan todos los tokens de la frase antes de e1 y después de e2, que
+  puede ser mucho ruido. Limitar a los 3-5 tokens más cercanos a cada entidad podría ayudar.
+- Paths con solo relaciones (sin lemma ni PoS): más generalizables.
+- Tercer entity en el path: si hay una entidad en el camino de dependencias entre e1 y e2, es una señal fuerte.

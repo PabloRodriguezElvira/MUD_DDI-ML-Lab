@@ -20,43 +20,76 @@ def extract_features(tree, entities, e1, e2) :
    tkE2 = tree.get_fragment_head(entities[e2]['start'],entities[e2]['end'])
 
    if tkE1 is not None and tkE2 is not None:
-      # features for tokens in between E1 and E2
-      #for tk in range(tkE1+1, tkE2) :
-      tk=tkE1+1
-      try:
-        while (tree.is_stopword(tk)):
-          tk += 1
-      except:
-        return set()
-      word  = tree.get_word(tk)
-      lemma = tree.get_lemma(tk).lower()
-      tag = tree.get_tag(tk)
-      feats.add("lib=" + lemma)
-      feats.add("wib=" + word)
-      feats.add("lpib=" + lemma + "_" + tag)
-      
+
+      # entity types
+      feats.add("e1type=" + entities[e1].get('type',''))
+      feats.add("e2type=" + entities[e2].get('type',''))
+      feats.add("pairtype=" + entities[e1].get('type','') + "_" + entities[e2].get('type',''))
+
+      # tokens BEFORE e1: word, lemma, lemma+PoS, verbs
+      for tk in range(1, tkE1):
+         lemma = tree.get_lemma(tk).lower()
+         word  = tree.get_word(tk)
+         tag   = tree.get_tag(tk)
+         feats.add("lb1=" + lemma)
+         feats.add("wb1=" + word)
+         feats.add("lpb1=" + lemma + "_" + tag)
+         if tag.startswith('V'):
+            feats.add("verb_before=" + lemma)
+
+      # tokens IN BETWEEN e1 and e2: word, lemma, lemma+PoS, verbs
       eib = False
-      for tk in range(tkE1+1, tkE2) :
+      for tk in range(tkE1+1, tkE2):
+         lemma = tree.get_lemma(tk).lower()
+         word  = tree.get_word(tk)
+         tag   = tree.get_tag(tk)
+         feats.add("lib=" + lemma)
+         feats.add("wib=" + word)
+         feats.add("lpib=" + lemma + "_" + tag)
+         if tag.startswith('V'):
+            feats.add("verb_between=" + lemma)
          if tree.is_entity(tk, entities):
-            eib = True 
-      
-	  # feature indicating the presence of an entity in between E1 and E2
-      feats.add('eib='+ str(eib))
+            eib = True
 
-      # features about paths in the tree
-      lcs = tree.get_LCS(tkE1,tkE2)
-      
-      path1 = tree.get_up_path(tkE1,lcs)
-      path1 = "<".join([tree.get_lemma(x)+"_"+tree.get_rel(x) for x in path1])
-      feats.add("path1="+path1)
+      feats.add("eib=" + str(eib))
 
-      path2 = tree.get_down_path(lcs,tkE2)
-      path2 = ">".join([tree.get_lemma(x)+"_"+tree.get_rel(x) for x in path2])
-      feats.add("path2="+path2)
+      # tokens AFTER e2: word, lemma, lemma+PoS, verbs
+      for tk in range(tkE2+1, tree.get_n_nodes()):
+         lemma = tree.get_lemma(tk).lower()
+         word  = tree.get_word(tk)
+         tag   = tree.get_tag(tk)
+         feats.add("la2=" + lemma)
+         feats.add("wa2=" + word)
+         feats.add("lpa2=" + lemma + "_" + tag)
+         if tag.startswith('V'):
+            feats.add("verb_after=" + lemma)
 
-      path = path1+"<"+tree.get_lemma(lcs)+"_"+tree.get_rel(lcs)+">"+path2      
-      feats.add("path="+path)
-      
+      # path features
+      lcs = tree.get_LCS(tkE1, tkE2)
+
+      feats.add("LCSpos="  + tree.get_tag(lcs))
+      feats.add("LCSlema=" + tree.get_lemma(lcs).lower())
+
+      path1_nodes = tree.get_up_path(tkE1, lcs)
+      path2_nodes = tree.get_down_path(lcs, tkE2)
+
+      if path1_nodes is not None and path2_nodes is not None:
+         # paths encoded with lemma+relation
+         path1_str = "<".join([tree.get_lemma(x)+"_"+tree.get_rel(x) for x in path1_nodes])
+         path2_str = ">".join([tree.get_lemma(x)+"_"+tree.get_rel(x) for x in path2_nodes])
+         lcs_str   = tree.get_lemma(lcs)+"_"+tree.get_rel(lcs)
+         feats.add("path1=" + path1_str)
+         feats.add("path2=" + path2_str)
+         feats.add("path="  + path1_str + "<" + lcs_str + ">" + path2_str)
+
+         # paths encoded with PoS+relation (more generalizable)
+         path1_pos = "<".join([tree.get_tag(x)+"_"+tree.get_rel(x) for x in path1_nodes])
+         path2_pos = ">".join([tree.get_tag(x)+"_"+tree.get_rel(x) for x in path2_nodes])
+         lcs_pos   = tree.get_tag(lcs)+"_"+tree.get_rel(lcs)
+         feats.add("path1pos=" + path1_pos)
+         feats.add("path2pos=" + path2_pos)
+         feats.add("pathpos="  + path1_pos + "<" + lcs_pos + ">" + path2_pos)
+
    return feats
 
 
@@ -86,8 +119,9 @@ for f in listdir(datadir) :
         ents = s.getElementsByTagName("entity")
         for e in ents :
            id = e.attributes["id"].value
-           offs = e.attributes["charOffset"].value.split("-")           
-           entities[id] = {'start': int(offs[0]), 'end': int(offs[-1])}
+           offs = e.attributes["charOffset"].value.split("-")
+           etype = e.attributes["type"].value if e.hasAttribute("type") else ""
+           entities[id] = {'start': int(offs[0]), 'end': int(offs[-1]), 'type': etype}
 
         # there are no entity pairs, skip sentence
         if len(entities) <= 1 : continue
