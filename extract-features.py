@@ -9,7 +9,36 @@ from deptree import *
 #import patterns
 
 
-## ------------------- 
+# Clue verbs associated with each DDI type (lemma form, lowercase)
+CLUE_VERBS = {
+    "effect":    {"increase", "decrease", "reduce", "enhance", "potentiate",
+                  "block", "cause", "produce", "affect", "alter", "raise",
+                  "lower", "elevate", "augment", "attenuate", "impair",
+                  "improve", "worsen", "intensify", "diminish"},
+    "mechanism": {"inhibit", "induce", "metabolize", "bind", "compete",
+                  "displace", "absorb", "distribute", "eliminate", "excrete",
+                  "oxidize", "conjugate", "glucuronidate", "hydrolyze",
+                  "acetylate", "interact"},
+    "advise":    {"avoid", "recommend", "monitor", "administer", "consider",
+                  "warn", "caution", "contraindicate", "adjust", "discontinue",
+                  "replace", "substitute", "use", "combine"},
+    "int":       {"interact", "co-administer", "co-prescribe"},
+}
+
+# flat map: lemma -> category
+_VERB_TO_CAT = {v: cat for cat, verbs in CLUE_VERBS.items() for v in verbs}
+
+
+def _add_clue_verb_feats(feats, lemma, position):
+    """Emit clue-verb features if lemma is a known clue verb."""
+    cat = _VERB_TO_CAT.get(lemma)
+    if cat is not None:
+        feats.add(f"clue_verb_{position}={lemma}")   # verb identity + position
+        feats.add(f"clue_cat_{position}={cat}")       # category + position
+        feats.add(f"has_clue_verb_{position}=True")   # binary presence
+
+
+## -------------------
 ## -- Convert a pair of drugs and their context in a feature vector
 
 def extract_features(tree, entities, e1, e2) :
@@ -36,6 +65,7 @@ def extract_features(tree, entities, e1, e2) :
          feats.add("lpb1=" + lemma + "_" + tag)
          if tag.startswith('V'):
             feats.add("verb_before=" + lemma)
+            _add_clue_verb_feats(feats, lemma, "before")
 
       # tokens IN BETWEEN e1 and e2: word, lemma, lemma+PoS, verbs
       eib = False
@@ -48,6 +78,7 @@ def extract_features(tree, entities, e1, e2) :
          feats.add("lpib=" + lemma + "_" + tag)
          if tag.startswith('V'):
             feats.add("verb_between=" + lemma)
+            _add_clue_verb_feats(feats, lemma, "between")
          if tree.is_entity(tk, entities):
             eib = True
 
@@ -63,6 +94,7 @@ def extract_features(tree, entities, e1, e2) :
          feats.add("lpa2=" + lemma + "_" + tag)
          if tag.startswith('V'):
             feats.add("verb_after=" + lemma)
+            _add_clue_verb_feats(feats, lemma, "after")
 
       # path features
       lcs = tree.get_LCS(tkE1, tkE2)

@@ -9,12 +9,15 @@ start /B java -mx5g -cp ".\stanford-corenlp-4.5.10\*" edu.stanford.nlp.pipeline.
 
 timeout /t 1 /nobreak > nul
 
-REM Extract features (devel and train sequentially; bash original ran devel in background)
+REM Extract features (devel, test and train sequentially; bash original ran devel in background)
 echo Extracting features...
 python extract-features.py %BASEDIR%\data\devel\ > devel.cod
 if errorlevel 1 goto error
 
 python extract-features.py %BASEDIR%\data\train\ > train.cod
+if errorlevel 1 goto error
+
+python extract-features.py %BASEDIR%\data\test\ > test.cod
 if errorlevel 1 goto error
 
 REM Equivalent of: tee train.cod | cut -f4- > train.cod.cl
@@ -31,14 +34,24 @@ echo Training model...
 python train-sklearn.py model.joblib vectorizer.joblib < train.cod.cl
 if errorlevel 1 goto error
 
-REM Run model
-echo Running model...
+REM Run model on devel
+echo Running model on devel...
 python predict-sklearn.py model.joblib vectorizer.joblib < devel.cod > devel.out
 if errorlevel 1 goto error
 
-REM Evaluate results
-echo Evaluating results...
+REM Evaluate devel results
+echo Evaluating devel results...
 python evaluator.py DDI %BASEDIR%\data\devel\ devel.out > devel.stats
+if errorlevel 1 goto error
+
+REM Run model on test
+echo Running model on test...
+python predict-sklearn.py model.joblib vectorizer.joblib < test.cod > test.out
+if errorlevel 1 goto error
+
+REM Evaluate test results
+echo Evaluating test results...
+python evaluator.py DDI %BASEDIR%\data\test\ test.out > test.stats
 if errorlevel 1 goto error
 
 echo.

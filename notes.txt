@@ -2,8 +2,9 @@ get the lambdas (to see most important features) -> model._model.tagger.info()
 
 EXPERIMENTS:
 1. baseline (base features) = 32% 
-2. all the features + NB classifier = 39%
-3. all the features + SVM base = 60.9%
+2. all the features unless clue verbs + NB classifier = 39%
+3. all the features unless clue verbs + SVM base = 60.9%
+4. all the features + clue verbs = 61.4%
 
 - Ajustar C (parámetro de regularización): prueba C=0.01, C=1.0, C=10.0 y quédate con el mejor en devel.
 - Inspeccionar features con los coeficientes: LinearSVC tiene clf.coef_ que te dice el peso de cada feature por clase
